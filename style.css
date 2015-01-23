@@ -1,0 +1,10 @@
+form label {
+    float: left;
+    width: 4em;
+    text-align: right;
+    margin-right: 1em;
+}
+
+form div {
+    margin-bottom: 1em;
+}
