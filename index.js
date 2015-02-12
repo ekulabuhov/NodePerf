@@ -5,21 +5,38 @@ var express = require('express');
 var bodyParser = require("body-parser");
 var app = express();
 var WebSocketServer = require("ws").Server;
+var PerfTest = require('./mongoose');
 
 function runTest(data, res) {
+    // Save test to DB
+    var perfTest = new PerfTest(data);
+
+    var pairNumber = 1;
+
+    do {
+        perfTest.tests.push({
+            title: data['test' + pairNumber + 'name'], 
+            code: data['fn' + pairNumber]
+        });
+    } while (data['fn' + ++pairNumber]);
+
+    perfTest.save(function (err) {
+      if (err) console.error(err); else console.log('saved');
+    })
+
+    // Run test suite
     var suite = new Benchmark.Suite;
     
     Benchmark.prototype.setup = data.setup;
     //Benchmark.prototype.teardown = data.teardown;
     
-    var pairNumber = 1;
     res.send('running test');
 
-    do {
-        var fn = Function(data['fn' + pairNumber]);
+    perfTest.tests.forEach(function(test) {
+        var fn = Function(test.code);
         // add tests
-        suite.add(data['test' + pairNumber + 'name'], fn);
-    } while (data['fn' + ++pairNumber]);
+        suite.add(test.title, fn);
+    })
 
     // add listeners
     suite.on('cycle', function (event) {
