@@ -1,3 +1,4 @@
+/* global process,console,require,module */
 if (!process.env.MONGOLAB_URI) { 
 	console.error('Environment variable for MONGOLAB_URI is not set.');
 	process.exit(1); 
@@ -13,11 +14,26 @@ db.once('open', connected);
 var perfTestSchema = mongoose.Schema({
 	author: String,
 	title: String,
+	slug: String,
 	description: String,
 	setup: String,
 	teardown: String,
 	tests: [{ title: String, code: String }]
-})
+});
+
+function convertToSlug(text)
+{
+    return text
+        .toLowerCase()
+        .replace(/[^\w ]+/g,'')
+        .replace(/ +/g,'-')
+        ;
+}
+
+perfTestSchema.pre('save', function(next) {
+	this.slug = convertToSlug(this.title);
+	next();
+});
 
 var PerfTest = mongoose.model('PerfTest', perfTestSchema);
 var data = { author: 'Egene' };
@@ -33,7 +49,7 @@ var firstTest = new PerfTest({
 		title: 'Second test option',
 		code: 'Code for second test'
 	}]
-})
+});
 
 // initialize from an object
 var secondTest = new PerfTest(data);

@@ -1,3 +1,4 @@
+/* global _,$,console */
 window.onload = init;
 
 _.templateSettings = {
@@ -5,9 +6,10 @@ _.templateSettings = {
 };
 
 function init() {
-    var testNum = 1;
-    var host = location.origin.replace(/^http/, 'ws')
-    var ws = new WebSocket(host);
+    var testNum = 1,
+        host = location.origin.replace(/^http/, 'ws'),
+        ws = new WebSocket(host);
+
     ws.onmessage = function (event) {
         if (event.data.indexOf('[PING]') > -1) {
             console.log('ping');
@@ -18,8 +20,11 @@ function init() {
         document.querySelector('#pings').appendChild(li);
     };
     
-    $("#submit").click(function () {
-        var formData = _.object($("form").serializeArray().map(function(v) {return [v.name, v.value];} ))
+    $('#submit').click(function () {
+        var formData = _.object($('form').serializeArray()
+            .map(function(v) { 
+                return [v.name, v.value];
+            } ));
         ws.send(JSON.stringify(formData));
     });
     
@@ -61,11 +66,11 @@ function init() {
     '        bitmap.push(sourceBmp.data[idx+2]);\n' +
     '        bitmap.push(sourceBmp.data[idx+3]);     \n' +
     '    }\n' +
-    '}\n' 
+    '}\n';
 
     // Add first case on init
-    addCase({testName: "Write uint32", testCode: firstTest});
-    addCase({testName: "Push", testCode: secondTest});
+    addCase({testName: 'Write uint32', testCode: firstTest});
+    addCase({testName: 'Push', testCode: secondTest});
     
     $('#setup').text(
         'var sourceBmp = {};\n' +
@@ -73,8 +78,11 @@ function init() {
         'sourceBmp.data = new Buffer(100*100*4);\n' +
         '\n' +
         'sourceBmp.width = 100;\n' +
-        'sourceBmp.height = 100;' )
+        'sourceBmp.height = 100;');
+
+    $('#author').val('Eugene');
+    $('#title').val('Image rotation');
     
     
-    $("#addCase").click(addCase);
+    $('#addCase').click(addCase);
 }
