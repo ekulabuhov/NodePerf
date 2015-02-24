@@ -5,7 +5,7 @@ var express = require('express');
 var bodyParser = require("body-parser");
 var app = express();
 var WebSocketServer = require("ws").Server;
-var PerfTest = require('./mongoose');
+var PerfTest = require('./server/mongoose');
 
 function runTest(data, res) {
     // Save test to DB
@@ -64,6 +64,8 @@ var server = app.listen(port, function () {
     console.log('Example app listening at http://%s:%s', host, port);
 });
 
+// __dirname = /NodePerf/server
+app.use(express.static(__dirname + '/client'));
 app.use(express.static(__dirname));
 app.use(bodyParser.urlencoded({
     extended: false
@@ -72,9 +74,16 @@ app.use(bodyParser.urlencoded({
 app.post('/', function (req, res) {
     var fn = Function(req.body.fn);
     runTest(fn, res);
+});
 
+app.get('/api/perftest/:slug', function (req, res) {
+    PerfTest.find({slug: req.params.slug}, function(err, result) {
+        res.json(result);
+    });
+});
 
-    // ...
+app.get('*', function(req,res) {
+    res.sendFile(__dirname + '/client/index.html');
 });
 
 
