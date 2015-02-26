@@ -18,7 +18,9 @@ var perfTestSchema = mongoose.Schema({
 	description: String,
 	setup: String,
 	teardown: String,
-	tests: [{ title: String, code: String }]
+	tests: [{ title: String, code: String }],
+	// hz - number of executions per second
+	results: [{ hz: Number }]
 });
 
 function convertToSlug(text)
@@ -53,6 +55,36 @@ var firstTest = new PerfTest({
 
 // initialize from an object
 var secondTest = new PerfTest(data);
+
+function findOrCreatePerfTest(title) {
+	return PerfTest.findOne({ title: title }).exec(function(err, test) {
+		if (test) console.log('found existing test');
+		if (err) console.log('found error', err);
+
+		// if found - update
+		if (!test) {
+			test = new PerfTest();
+			test.title = 'New title';
+		}
+
+		test.author = 'Eugene';
+		test.save(function(err) {
+			if (err) console.error(err); else console.log('update successfull');	
+		});
+
+		return test;
+	});
+}
+
+function updateOrCreateTest() {
+	
+	findOrCreatePerfTest('Image rotation')
+	.then(function(blah) {
+		console.log('outputing existing test', blah);	
+	});
+}
+
+//updateOrCreateTest();
 
 function connected(callback) {
 	console.log('Connected to Mongo');

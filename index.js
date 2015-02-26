@@ -1,34 +1,52 @@
+/* global console,require,process */
 'use strict';
 
 var Benchmark = require('benchmark');
 var express = require('express');
-var bodyParser = require("body-parser");
+var bodyParser = require('body-parser');
 var app = express();
-var WebSocketServer = require("ws").Server;
+var WebSocketServer = require('ws').Server;
 var PerfTest = require('./server/mongoose');
+var extend = require('util')._extend;
 
-function runTest(data, res) {
-    // Save test to DB
-    var perfTest = new PerfTest(data);
+/* 
+* @param (data) Posted form data
+* @return Promise 
+*/
+function findOrCreatePerfTest(data) {
+    return PerfTest.findOne({ title: data.title }).exec(function(err, test) {
+        if (err) console.log(err);
+        
+        // if not found - create
+        if (!test) {
+            var pairNumber = 1;
 
-    var pairNumber = 1;
+            test = new PerfTest(data);
+            do {
+                test.tests.push({
+                    title: data['test' + pairNumber + 'name'], 
+                    code: data['fn' + pairNumber]
+                });
+            } while (data['fn' + ++pairNumber]);
+        } else {
+            // if it is found - update the object
+            extend(test, data);
+        }
 
-    do {
-        perfTest.tests.push({
-            title: data['test' + pairNumber + 'name'], 
-            code: data['fn' + pairNumber]
-        });
-    } while (data['fn' + ++pairNumber]);
+        return test;
+    });
+}
 
-    perfTest.save(function (err) {
-      if (err) console.error(err); else console.log('saved');
-    })
-
+function runTest(perfTest, res) {
     // Run test suite
-    var suite = new Benchmark.Suite;
+    var suite = new Benchmark.Suite();
     
-    Benchmark.prototype.setup = data.setup;
-    //Benchmark.prototype.teardown = data.teardown;
+    Benchmark.prototype.setup = perfTest.setup;
+    //Benchmark.prototype.teardown = perfTest.teardown;
+    console.log(perfTest.setup);
+    perfTest.save(function(err) {
+            if (err) console.error(err); else console.log('update successfull');    
+        });
     
     res.send('running test');
 
@@ -36,14 +54,20 @@ function runTest(data, res) {
         var fn = Function(test.code);
         // add tests
         suite.add(test.title, fn);
-    })
+    });
 
     // add listeners
     suite.on('cycle', function (event) {
         res.send(String(event.target));
+
+        perfTest.results.push({ hz:event.target.hz });
     })
     .on('complete', function () {
         res.send('Fastest is ' + this.filter('fastest').pluck('name'));
+
+        perfTest.save(function (err) {
+          if (err) console.error(err); else console.log('saved');
+        });
     })
     .on('error', function () {
         res.send(JSON.stringify(arguments));
@@ -71,11 +95,6 @@ app.use(bodyParser.urlencoded({
     extended: false
 }));
 
-app.post('/', function (req, res) {
-    var fn = Function(req.body.fn);
-    runTest(fn, res);
-});
-
 app.get('/api/perftest/:slug', function (req, res) {
     PerfTest.find({slug: req.params.slug}, function(err, result) {
         res.json(result);
@@ -90,25 +109,29 @@ app.get('*', function(req,res) {
 /* --== Web Socket server ==-- */
 var wss = new WebSocketServer({
     server: server
-})
-console.log("websocket server created")
+});
+
+console.log('websocket server created');
 
 wss.on("connection", function (ws) {
     var id = setInterval(function () {
         ws.send(JSON.stringify('[PING] ' + new Date()), function () {})
-    }, 5000)
+    }, 5000);
 
-    console.log("websocket connection open")
+    console.log('websocket connection open');
 
-    ws.on("close", function () {
-        console.log("websocket connection close")
-        clearInterval(id)
-    })
+    ws.on('close', function () {
+        console.log('websocket connection close');
+        clearInterval(id);
+    });
 
     ws.onmessage = function (event) {
-        console.log(event.data)
+        console.log(event.data);
 
-
-        runTest(JSON.parse(event.data), ws);
-    }
-})
+        var formData = JSON.parse(event.data);
+        findOrCreatePerfTest(formData)
+        .then(function(perfTest) { 
+            runTest(perfTest, ws); 
+        });
+    };
+});

@@ -1,3 +1,19 @@
+html {
+	background: #c4c4c4;
+}
+
+body {
+	width: 60em;
+	background: #fff;
+	margin: 0 auto;
+	padding: 2em 2.5em;
+}
+
+form {
+	width: 50em;
+	margin: 0 auto;
+}
+
 form label {
     float: left;
     width: 4em;
