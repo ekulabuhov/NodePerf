@@ -1,5 +1,5 @@
 ## What?
-This will eventually become a platform for pitting multiple algorithm implementations against each other to find out the most performant.
+This will eventually become a platform for profiling different snippets of code against each other to find out the most performant solution.
 
 This project is inspired by jsperf.com.
 
